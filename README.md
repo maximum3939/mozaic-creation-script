@@ -1,6 +1,12 @@
-# Docker 起動手順 (Windows + VS Code)
+# Docker 起動手順
 
 この手順書では、Docker コンテナを起動し、ブラウザでアプリを開くところまでを順番に説明します。
+
+## アプリ画面
+
+以下はアプリの画面イメージです。
+
+![Mozaic App Screen](pic/mozaic-screen.jpg)
 
 ## 1. 事前準備
 

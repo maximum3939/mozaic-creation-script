@@ -1,0 +1,11 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: nsfw-detector-annotator
+    ports:
+      - "8501:8501"
+    volumes:
+      - ../uploaded_media:/workspace/uploaded_media
+    restart: unless-stopped

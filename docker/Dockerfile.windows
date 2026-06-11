@@ -1,0 +1,27 @@
+# escape=`
+FROM python:3.12-windowsservercore-ltsc2022
+
+SHELL ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command"]
+
+ENV PYTHONDONTWRITEBYTECODE=1 `
+    PYTHONUNBUFFERED=1 `
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /workspace
+
+# Install ffmpeg via Chocolatey for video processing support.
+RUN Set-ExecutionPolicy Bypass -Scope Process -Force; `
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; `
+    iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1')); `
+    choco install -y ffmpeg; `
+    refreshenv
+
+COPY requirements.txt .
+RUN python -m pip install --upgrade pip; `
+    pip install -r requirements.txt
+
+COPY . .
+
+EXPOSE 8501
+
+CMD ["python", "-m", "streamlit", "run", "app/app.py", "--server.address=0.0.0.0", "--server.port=8501", "--server.headless=true"]

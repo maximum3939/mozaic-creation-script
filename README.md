@@ -30,7 +30,9 @@ docker compose version
 このプロジェクトでは Docker 関連ファイルを次に配置しています。
 
 - docker/Dockerfile
+- docker/Dockerfile.windows
 - docker/docker-compose.yml
+- docker/docker-compose.windows.yml
 - .dockerignore
 
 補足:
@@ -39,6 +41,44 @@ docker compose version
 - この構成ではビルドコンテキストがプロジェクトルートのため、.dockerignore はルート配置です。
 
 ## 3. コンテナをビルドして起動
+
+このプロジェクトは 2 通りの起動方法に対応しています。
+
+- Linux コンテナで起動する場合 (既定): docker-compose.yml
+- Windows コンテナで起動する場合: docker-compose.windows.yml
+
+### 3-1. Linux コンテナで起動
+
+Windows で Linux コンテナを使う場合は、先に WSL2 を設定します。
+
+1. 管理者権限の PowerShell で WSL を有効化します。
+
+```powershell
+wsl --install
+```
+
+2. 再起動後、WSL の既定バージョンを 2 に設定します。
+
+```powershell
+wsl --set-default-version 2
+```
+
+3. Docker Desktop を開き、次を確認します。
+
+- Settings -> General: Use the WSL 2 based engine を有効化
+- Settings -> Resources -> WSL Integration: 使用するディストリビューション (例: Ubuntu) を有効化
+
+4. WSL 側で状態を確認します。
+
+```powershell
+wsl -l -v
+```
+
+VERSION が 2 で表示されれば設定完了です。
+
+補足:
+
+- パフォーマンスのため、ソースコードは WSL 側ファイルシステム (例: /home/<user>/...) に置くことを推奨します。
 
 VS Code ターミナルで、まず Docker ディレクトリへ移動します。
 
@@ -54,6 +94,25 @@ docker compose up --build -d
 
 初回はイメージビルドがあるため数分かかることがあります。
 
+### 3-2. Windows コンテナで起動
+
+1. Docker Desktop で Windows Containers モードに切り替えます。
+2. VS Code ターミナルで docker ディレクトリへ移動します。
+
+```powershell
+cd docker
+```
+
+3. Windows 用 compose ファイルを指定して起動します。
+
+```powershell
+docker compose -f docker-compose.windows.yml up --build -d
+```
+
+補足:
+
+- Windows コンテナは Linux コンテナよりイメージサイズが大きくなりやすく、初回起動に時間がかかることがあります。
+
 ## 4. 起動状態を確認
 
 コンテナ状態を確認します。
@@ -62,12 +121,24 @@ docker compose up --build -d
 docker compose ps
 ```
 
+Windows 用 compose を使って起動した場合は、同じ compose ファイルを指定します。
+
+```powershell
+docker compose -f docker-compose.windows.yml ps
+```
+
 app サービスが Up になっていれば起動成功です。
 
 必要に応じてログを確認します。
 
 ```powershell
 docker compose logs -f
+```
+
+Windows 用 compose を使って起動した場合:
+
+```powershell
+docker compose -f docker-compose.windows.yml logs -f
 ```
 
 ログの追尾を終了する場合は Ctrl + C を押します。
@@ -95,16 +166,34 @@ start http://localhost:8501
 docker compose down
 ```
 
+Windows 用 compose を使って起動した場合:
+
+```powershell
+docker compose -f docker-compose.windows.yml down
+```
+
 再起動 (ビルドなし):
 
 ```powershell
 docker compose up -d
 ```
 
+Windows 用 compose を使って起動した場合:
+
+```powershell
+docker compose -f docker-compose.windows.yml up -d
+```
+
 依存関係変更後の再起動 (再ビルドあり):
 
 ```powershell
 docker compose up --build -d
+```
+
+Windows 用 compose を使って起動した場合:
+
+```powershell
+docker compose -f docker-compose.windows.yml up --build -d
 ```
 
 ## 7. データ永続化

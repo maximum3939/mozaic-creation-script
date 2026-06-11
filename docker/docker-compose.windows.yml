@@ -1,0 +1,12 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.windows
+    platform: windows/amd64
+    container_name: nsfw-detector-annotator-windows
+    ports:
+      - "8501:8501"
+    volumes:
+      - ../uploaded_media:C:/workspace/uploaded_media
+    restart: unless-stopped

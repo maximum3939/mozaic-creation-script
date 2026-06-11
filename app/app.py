@@ -107,7 +107,7 @@ with st.sidebar:
         max_value=1.0,
         value=st.session_state.segmentation_conf_threshold,
         step=0.01,
-        help="高く設定（0.5以上）：確実な検出のみ、誤検出が少ない\n低く設定（0.1以下）：小さな領域も検出、検出数が多い"
+        help="高く設定（0.5以上）：確実な検出のみ、誤検出が少ない\n低く設定（0.1以下）：小さな領域も検出、検出数が多い",
     )
     st.session_state.default_box_padding_ratio = st.slider(
         "検出範囲の余白（標準領域用）",
@@ -115,7 +115,7 @@ with st.sidebar:
         max_value=0.5,
         value=st.session_state.default_box_padding_ratio,
         step=0.01,
-        help="高く設定（0.3以上）：検出範囲が大きく拡張される\n低く設定（0.0）：検出範囲のままで拡張されない"
+        help="高く設定（0.3以上）：検出範囲が大きく拡張される\n低く設定（0.0）：検出範囲のままで拡張されない",
     )
     st.session_state.genital_box_padding_ratio = st.slider(
         "検出範囲の余白（生殖器用）",
@@ -123,7 +123,7 @@ with st.sidebar:
         max_value=0.5,
         value=st.session_state.genital_box_padding_ratio,
         step=0.01,
-        help="高く設定（0.3以上）：生殖器周辺がより広く隠れる\n低く設定（0.0）：生殖器そのものだけ隠れる"
+        help="高く設定（0.3以上）：生殖器周辺がより広く隠れる\n低く設定（0.0）：生殖器そのものだけ隠れる",
     )
 
 
@@ -148,12 +148,12 @@ def classify_image(image):
     return category
 
 
-def segment_image(image):
+def segment_image(image, conf_threshold=0.08):
     results = segmentation_model(
         image,
         agnostic_nms=True,
         retina_masks=True,
-        conf=st.session_state.segmentation_conf_threshold,
+        conf=conf_threshold,
         verbose=True,
     )
     return results
@@ -668,8 +668,9 @@ else:
             if should_segment_image:
                 with st.spinner("Detecting explicit regions..."):
                     segmentation_results = []
+                    conf_threshold = st.session_state.segmentation_conf_threshold
                     with ThreadPoolExecutor() as executor:
-                        future = executor.submit(segment_image, image)
+                        future = executor.submit(segment_image, image, conf_threshold)
                         segmentation_results = future.result()
 
                 boxes = segmentation_results[0].boxes.xyxy.cpu().tolist()

@@ -73,6 +73,14 @@ if "saved_image_paths" not in st.session_state:
 if "results_cache" not in st.session_state:
     st.session_state.results_cache = {}
 
+# Initialize parameter controls in session state
+if "segmentation_conf_threshold" not in st.session_state:
+    st.session_state.segmentation_conf_threshold = 0.08
+if "default_box_padding_ratio" not in st.session_state:
+    st.session_state.default_box_padding_ratio = 0.08
+if "genital_box_padding_ratio" not in st.session_state:
+    st.session_state.genital_box_padding_ratio = 0.18
+
 # Toggle between image and video mode
 on = st.toggle("Video mode")
 
@@ -90,9 +98,33 @@ CLASS_NAME_JA = {
     "background": "背景",
 }
 
-SEGMENTATION_CONF_THRESHOLD = 0.08
-DEFAULT_BOX_PADDING_RATIO = 0.08
-GENITAL_BOX_PADDING_RATIO = 0.18
+# パラメータ調整用 UI
+with st.sidebar:
+    st.header("⚙️ パラメータ調整")
+    st.session_state.segmentation_conf_threshold = st.slider(
+        "検出の信頼度（高いほど厳しい）",
+        min_value=0.0,
+        max_value=1.0,
+        value=st.session_state.segmentation_conf_threshold,
+        step=0.01,
+        help="高く設定（0.5以上）：確実な検出のみ、誤検出が少ない\n低く設定（0.1以下）：小さな領域も検出、検出数が多い"
+    )
+    st.session_state.default_box_padding_ratio = st.slider(
+        "検出範囲の余白（標準領域用）",
+        min_value=0.0,
+        max_value=0.5,
+        value=st.session_state.default_box_padding_ratio,
+        step=0.01,
+        help="高く設定（0.3以上）：検出範囲が大きく拡張される\n低く設定（0.0）：検出範囲のままで拡張されない"
+    )
+    st.session_state.genital_box_padding_ratio = st.slider(
+        "検出範囲の余白（生殖器用）",
+        min_value=0.0,
+        max_value=0.5,
+        value=st.session_state.genital_box_padding_ratio,
+        step=0.01,
+        help="高く設定（0.3以上）：生殖器周辺がより広く隠れる\n低く設定（0.0）：生殖器そのものだけ隠れる"
+    )
 
 
 def build_class_option_map(names_obj):
@@ -121,13 +153,15 @@ def segment_image(image):
         image,
         agnostic_nms=True,
         retina_masks=True,
-        conf=SEGMENTATION_CONF_THRESHOLD,
+        conf=st.session_state.segmentation_conf_threshold,
         verbose=True,
     )
     return results
 
 
-def expand_box(box, image_width, image_height, padding_ratio):
+def expand_box(box, image_width, image_height, padding_ratio=None):
+    if padding_ratio is None:
+        padding_ratio = st.session_state.default_box_padding_ratio
     left, top, right, bottom = (float(value) for value in box)
     box_width = max(1.0, right - left)
     box_height = max(1.0, bottom - top)
@@ -424,7 +458,7 @@ if on:
                 imgsz=416,
                 show=False,
                 agnostic_nms=True,
-                conf=SEGMENTATION_CONF_THRESHOLD,
+                conf=st.session_state.segmentation_conf_threshold,
                 device="cpu",
                 verbose=False,
             )
@@ -446,9 +480,9 @@ if on:
                     if class_name not in selected_video_class_names:
                         continue
                     padding_ratio = (
-                        GENITAL_BOX_PADDING_RATIO
+                        st.session_state.genital_box_padding_ratio
                         if class_name in {"female_genital", "male_genital"}
-                        else DEFAULT_BOX_PADDING_RATIO
+                        else st.session_state.default_box_padding_ratio
                     )
                     padded_box = expand_box(box, w, h, padding_ratio)
                     apply_effect_to_video_region(
@@ -723,9 +757,9 @@ else:
                         class_name = segmentation_results[0].names[int(cls)]
                         if class_name in selected_image_class_names:
                             padding_ratio = (
-                                GENITAL_BOX_PADDING_RATIO
+                                st.session_state.genital_box_padding_ratio
                                 if class_name in {"female_genital", "male_genital"}
-                                else DEFAULT_BOX_PADDING_RATIO
+                                else st.session_state.default_box_padding_ratio
                             )
                             padded_box = expand_box(
                                 box, image.width, image.height, padding_ratio
@@ -814,13 +848,4 @@ else:
 st.markdown("---")
 
 # Call the admin panel
-asyncio.run(admin_panel())
-
-# A small button to link to the Github repo
-st.write("---")
-st.markdown(
-    "ℹ️ Please note that I collect uploaded images and videos to re-train my models. However, the user remains anonymous."
-)
-st.link_button(
-    "🐙 View on GitHub", "https://github.com/Forenche/nsfw_detector_annotator"
-)
+# asyncio.run(admin_panel())

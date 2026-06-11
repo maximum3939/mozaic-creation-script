@@ -90,6 +90,10 @@ CLASS_NAME_JA = {
     "background": "背景",
 }
 
+SEGMENTATION_CONF_THRESHOLD = 0.08
+DEFAULT_BOX_PADDING_RATIO = 0.08
+GENITAL_BOX_PADDING_RATIO = 0.18
+
 
 def build_class_option_map(names_obj):
     if isinstance(names_obj, dict):
@@ -114,9 +118,29 @@ def classify_image(image):
 
 def segment_image(image):
     results = segmentation_model(
-        image, agnostic_nms=True, retina_masks=True, verbose=True
+        image,
+        agnostic_nms=True,
+        retina_masks=True,
+        conf=SEGMENTATION_CONF_THRESHOLD,
+        verbose=True,
     )
     return results
+
+
+def expand_box(box, image_width, image_height, padding_ratio):
+    left, top, right, bottom = (float(value) for value in box)
+    box_width = max(1.0, right - left)
+    box_height = max(1.0, bottom - top)
+
+    pad_x = box_width * padding_ratio
+    pad_y = box_height * padding_ratio
+
+    expanded_left = max(0, int(left - pad_x))
+    expanded_top = max(0, int(top - pad_y))
+    expanded_right = min(image_width, int(right + pad_x))
+    expanded_bottom = min(image_height, int(bottom + pad_y))
+
+    return [expanded_left, expanded_top, expanded_right, expanded_bottom]
 
 
 def apply_effect_to_image_region(
@@ -400,6 +424,7 @@ if on:
                 imgsz=416,
                 show=False,
                 agnostic_nms=True,
+                conf=SEGMENTATION_CONF_THRESHOLD,
                 device="cpu",
                 verbose=False,
             )
@@ -420,8 +445,18 @@ if on:
                     class_name = segmentation_model.model.names[int(cls)]
                     if class_name not in selected_video_class_names:
                         continue
+                    padding_ratio = (
+                        GENITAL_BOX_PADDING_RATIO
+                        if class_name in {"female_genital", "male_genital"}
+                        else DEFAULT_BOX_PADDING_RATIO
+                    )
+                    padded_box = expand_box(box, w, h, padding_ratio)
                     apply_effect_to_video_region(
-                        im0, box, effect_strength, effect_type, mosaic_pixel_size
+                        im0,
+                        padded_box,
+                        effect_strength,
+                        effect_type,
+                        mosaic_pixel_size,
                     )
 
             # Write the processed frame to the output video
@@ -595,7 +630,8 @@ else:
                 Pass to segmentation model only if images need blur, otherwise skip
             """
 
-            if category == "porn" or category == "hentai":
+            should_segment_image = True
+            if should_segment_image:
                 with st.spinner("Detecting explicit regions..."):
                     segmentation_results = []
                     with ThreadPoolExecutor() as executor:
@@ -686,7 +722,15 @@ else:
                     for box, cls in zip(boxes, clss):
                         class_name = segmentation_results[0].names[int(cls)]
                         if class_name in selected_image_class_names:
-                            target_boxes.append(box)
+                            padding_ratio = (
+                                GENITAL_BOX_PADDING_RATIO
+                                if class_name in {"female_genital", "male_genital"}
+                                else DEFAULT_BOX_PADDING_RATIO
+                            )
+                            padded_box = expand_box(
+                                box, image.width, image.height, padding_ratio
+                            )
+                            target_boxes.append(padded_box)
 
                 if use_manual_box:
                     st.caption(

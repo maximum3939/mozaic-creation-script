@@ -90,9 +90,32 @@ CLASS_NAME_JA = {
     "background": "背景",
 }
 
-SEGMENTATION_CONF_THRESHOLD = 0.08
-DEFAULT_BOX_PADDING_RATIO = 0.08
-GENITAL_BOX_PADDING_RATIO = 0.18
+with st.sidebar:
+    st.header("検出パラメータ")
+    SEGMENTATION_CONF_THRESHOLD = st.slider(
+        "検出信頼度しきい値",
+        min_value=0.01,
+        max_value=1.0,
+        value=0.08,
+        step=0.01,
+        help="低いほど多く検出されますが誤検出も増えます",
+    )
+    DEFAULT_BOX_PADDING_RATIO = st.slider(
+        "ボックス余白（標準）",
+        min_value=0.0,
+        max_value=0.5,
+        value=0.08,
+        step=0.01,
+        help="検出ボックスの余白割合（乳房・肛門など）",
+    )
+    GENITAL_BOX_PADDING_RATIO = st.slider(
+        "ボックス余白（性器）",
+        min_value=0.0,
+        max_value=0.5,
+        value=0.18,
+        step=0.01,
+        help="女性器・男性器の検出ボックスの余白割合",
+    )
 
 
 def build_class_option_map(names_obj):
